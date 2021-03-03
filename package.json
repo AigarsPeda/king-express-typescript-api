@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts",
-    "build": "rm -rf build && prettier --write src/ && tsc"
+    "build": "tsc -p ."
   },
   "author": "",
   "license": "ISC",
