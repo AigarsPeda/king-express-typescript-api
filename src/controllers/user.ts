@@ -2,48 +2,9 @@ import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
 import { poll } from "../config/postgresql";
+import logging from "../config/logging";
 
 const NAMESPACE = "User";
-
-// const createBook = async (req: Request, res: Response, next: NextFunction) => {
-//     logging.info(NAMESPACE, 'Inserting books');
-
-//     let { author, title } = req.body;
-
-//     let query = `INSERT INTO books (author, title) VALUES ("${author}", "${title}")`;
-
-//     Connect()
-//         .then((connection) => {
-//             Query(connection, query)
-//                 .then((result) => {
-//                     logging.info(NAMESPACE, 'Book created: ', result);
-
-//                     return res.status(200).json({
-//                         result
-//                     });
-//                 })
-//                 .catch((error) => {
-//                     logging.error(NAMESPACE, error.message, error);
-
-//                     return res.status(200).json({
-//                         message: error.message,
-//                         error
-//                     });
-//                 })
-//                 .finally(() => {
-//                     logging.info(NAMESPACE, 'Closing connection.');
-//                     connection.end();
-//                 });
-//         })
-//         .catch((error) => {
-//             logging.error(NAMESPACE, error.message, error);
-
-//             return res.status(200).json({
-//                 message: error.message,
-//                 error
-//             });
-//         });
-// };
 
 // const getAllBooks = async (req: Request, res: Response, next: NextFunction) => {
 //     logging.info(NAMESPACE, 'Getting all books.');
@@ -84,6 +45,8 @@ const NAMESPACE = "User";
 // };
 
 export const createUser = async (req: Request, res: Response) => {
+  logging.info(NAMESPACE, "Inserting user");
+
   try {
     const { email, password, name, surname } = req.body;
     const created_on = new Date();
@@ -91,7 +54,7 @@ export const createUser = async (req: Request, res: Response) => {
     // hash password
     const hashPassword = await argon2.hash(password);
 
-    // cre table if its not already exists
+    // create table if it not already exists
     await poll.query(
       `
         CREATE TABLE IF NOT EXISTS users (
@@ -122,6 +85,8 @@ export const createUser = async (req: Request, res: Response) => {
       ]
     );
 
+    logging.info(NAMESPACE, "User created: ", newUser.rows[0]);
+
     // sign jsonwebtoken to save it in front
     // and identify user later
     const token = jwt.sign({ user: newUser.rows[0] }, process.env.SECRET_KEY!);
@@ -132,7 +97,8 @@ export const createUser = async (req: Request, res: Response) => {
       token: token
     });
   } catch (error) {
-    console.error("SIGNUP ERROR: ", error.message);
+    logging.error(NAMESPACE, error.message, error);
+    // console.error("SIGNUP ERROR: ", error.message);
     return res.json({ error: "user name or email already taken" });
   }
 };
