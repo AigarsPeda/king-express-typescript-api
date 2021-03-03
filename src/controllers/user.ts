@@ -100,10 +100,6 @@ export const loginUser = async (req: Request, res: Response) => {
         process.env.SECRET_KEY!
       );
 
-      // delete password from user so it
-      // would not be in response
-      // delete loginUser.rows[0].password;
-
       logging.info(NAMESPACE, "User login: ", updatedClient.rows[0]);
 
       // return token and found user
