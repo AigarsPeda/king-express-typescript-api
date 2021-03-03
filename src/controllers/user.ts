@@ -6,44 +6,6 @@ import logging from "../config/logging";
 
 const NAMESPACE = "User";
 
-// const getAllBooks = async (req: Request, res: Response, next: NextFunction) => {
-//     logging.info(NAMESPACE, 'Getting all books.');
-
-//     let query = 'SELECT * FROM books';
-
-//     Connect()
-//         .then((connection) => {
-//             Query(connection, query)
-//                 .then((results) => {
-//                     logging.info(NAMESPACE, 'Retrieved books: ', results);
-
-//                     return res.status(200).json({
-//                         results
-//                     });
-//                 })
-//                 .catch((error) => {
-//                     logging.error(NAMESPACE, error.message, error);
-
-//                     return res.status(200).json({
-//                         message: error.message,
-//                         error
-//                     });
-//                 })
-//                 .finally(() => {
-//                     logging.info(NAMESPACE, 'Closing connection.');
-//                     connection.end();
-//                 });
-//         })
-//         .catch((error) => {
-//             logging.error(NAMESPACE, error.message, error);
-
-//             return res.status(200).json({
-//                 message: error.message,
-//                 error
-//             });
-//         });
-// };
-
 export const createUser = async (req: Request, res: Response) => {
   logging.info(NAMESPACE, "Inserting user");
 
@@ -103,4 +65,61 @@ export const createUser = async (req: Request, res: Response) => {
   }
 };
 
-export default { createUser };
+export const loginUser = async (req: Request, res: Response) => {
+  logging.info(NAMESPACE, "Logging in user");
+  try {
+    const { email, password } = req.body;
+
+    // find user id DB with email
+    const loginUser = await poll.query("SELECT * FROM users WHERE email = $1", [
+      email.toLowerCase()
+    ]);
+
+    // user not found
+    if (!loginUser.rows[0]) {
+      return res.status(400).json({ error: "user not found" });
+    }
+
+    // check password
+    // compare password entered and what is saved in db
+    if (await argon2.verify(loginUser.rows[0].password, password)) {
+      const last_login = new Date();
+
+      // updating to save login date
+      const updatedClient = await poll.query(
+        `UPDATE users SET last_login = $1 WHERE email = $2 
+         RETURNING name, surname, email, created_on, user_id
+        `,
+        [last_login, email.toLowerCase()]
+      );
+
+      // sign jsonwebtoken to save it in front
+      // end identify user later
+      const token = jwt.sign(
+        { user: updatedClient.rows[0] },
+        process.env.SECRET_KEY!
+      );
+
+      // delete password from user so it
+      // would not be in response
+      // delete loginUser.rows[0].password;
+
+      logging.info(NAMESPACE, "User login: ", updatedClient.rows[0]);
+
+      // return token and found user
+      return res.status(200).json({
+        user: updatedClient.rows[0],
+        token: token
+      });
+    } else {
+      // password did not match
+      return res.status(401).json({ error: "wrong credentials" });
+    }
+  } catch (error) {
+    logging.error(NAMESPACE, error.message, error);
+    // console.error("LOGIN ERROR: ", error.message);
+    return res.status(503).json({ error: "service unavailable" });
+  }
+};
+
+export default { createUser, loginUser };
