@@ -4,6 +4,8 @@ import express from "express";
 import logging from "./config/logging";
 import config from "./config/config";
 import userRoutes from "./routes/user";
+import gameRoutes from "./routes/game";
+import { authMiddleware } from "./middleware/authMiddleware";
 
 const NAMESPACE = "Server";
 const router = express();
@@ -49,6 +51,7 @@ router.use((req, res, next) => {
 
 /** Routes go here */
 router.use("/user", userRoutes);
+router.use("/game", authMiddleware, gameRoutes);
 
 /** Error handling */
 router.use((req, res, next) => {
