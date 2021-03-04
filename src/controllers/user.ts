@@ -60,7 +60,6 @@ export const createUser = async (req: Request, res: Response) => {
     });
   } catch (error) {
     logging.error(NAMESPACE, error.message, error);
-    // console.error("SIGNUP ERROR: ", error.message);
     return res.json({ error: "user name or email already taken" });
   }
 };
@@ -113,7 +112,6 @@ export const loginUser = async (req: Request, res: Response) => {
     }
   } catch (error) {
     logging.error(NAMESPACE, error.message, error);
-    // console.error("LOGIN ERROR: ", error.message);
     return res.status(503).json({ error: "service unavailable" });
   }
 };
