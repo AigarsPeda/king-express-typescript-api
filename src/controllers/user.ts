@@ -1,8 +1,8 @@
 import argon2 from "argon2";
-import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
-import { poll } from "../config/postgresql";
+import jwt from "jsonwebtoken";
 import logging from "../config/logging";
+import { poll } from "../config/postgresql";
 
 const NAMESPACE = "User";
 
@@ -20,13 +20,18 @@ export const createUser = async (req: Request, res: Response) => {
     await poll.query(
       `
         CREATE TABLE IF NOT EXISTS users (
-        user_id serial PRIMARY KEY,
-        name VARCHAR ( 50 ) NOT NULL,
-        surname VARCHAR ( 50 ) NOT NULL,
-        password VARCHAR ( 255 ) NOT NULL,
-        email VARCHAR ( 255 ) UNIQUE NOT NULL,
-        created_on TIMESTAMP NOT NULL,
-        last_login TIMESTAMP )
+          user_id serial PRIMARY KEY,
+          name VARCHAR ( 50 ) NOT NULL,
+          surname VARCHAR ( 50 ) NOT NULL,
+          password VARCHAR ( 255 ) NOT NULL,
+          email VARCHAR ( 255 ) UNIQUE NOT NULL,
+          created_on TIMESTAMP NOT NULL,
+          last_login TIMESTAMP,
+          games_played INTEGER NOT NULL DEFAULT 0,
+          games_won INTEGER NOT NULL DEFAULT 0,
+          games_lost INTEGER NOT NULL DEFAULT 0,
+          games_created INTEGER NOT NULL DEFAULT 0
+        )
       `
     );
 
