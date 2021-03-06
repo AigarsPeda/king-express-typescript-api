@@ -7,10 +7,17 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR ( 255 ) NOT NULL,
   email VARCHAR ( 255 ) UNIQUE NOT NULL,
   created_on TIMESTAMP NOT NULL,
-  last_login TIMESTAMP,
+  last_login TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS users_stats (
+  stats_id serial PRIMARY KEY,
   games_played INTEGER NOT NULL DEFAULT 0,
   games_won INTEGER NOT NULL DEFAULT 0,
-  games_lost INTEGER NOT NULL DEFAULT 0
+  games_lost INTEGER NOT NULL DEFAULT 0,
+  games_created INTEGER NOT NULL DEFAULT 0,
+  user_id INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users (user_id)
 );
 
 
