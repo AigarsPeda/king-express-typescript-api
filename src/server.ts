@@ -1,11 +1,10 @@
-import http from "http";
-import bodyParser from "body-parser";
 import express from "express";
-import logging from "./config/logging";
+import http from "http";
 import config from "./config/config";
-import userRoutes from "./routes/user";
-import gameRoutes from "./routes/game";
+import logging from "./config/logging";
 import { authMiddleware } from "./middleware/authMiddleware";
+import gameRoutes from "./routes/game";
+import userRoutes from "./routes/user";
 
 const NAMESPACE = "Server";
 const router = express();
@@ -30,8 +29,8 @@ router.use((req, res, next) => {
 });
 
 /** Parse the body of the request */
-router.use(bodyParser.urlencoded({ extended: true }));
-router.use(bodyParser.json());
+router.use(express.urlencoded({ extended: true }));
+router.use(express.json());
 
 /** Rules of our API */
 router.use((req, res, next) => {
