@@ -4,7 +4,6 @@ import controller from "../controllers/game";
 const router = express.Router();
 
 router.post("/create/game", controller.createGame);
-
-// router.get('/get/books', controller.getAllBooks);
+router.get("/games", controller.getAllGames);
 
 export = router;
