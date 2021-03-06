@@ -1,6 +1,6 @@
 import { Response } from "express";
 import logging from "../config/logging";
-import { getClient } from "../config/postgresql";
+import { getClient, poll } from "../config/postgresql";
 import RequestWithUser from "../interfaces/requestWithUser";
 
 const NAMESPACE = "Game";
@@ -13,23 +13,42 @@ const createGame = async (req: RequestWithUser, res: Response) => {
     if (!client) return res.status(503).json("no connection with db");
     try {
       await client.query("begin");
-      const { name } = req.user;
-      const { players } = req.body;
+      const { user_id } = req.user;
+      const { playerArray } = req.body;
 
-      console.log("users name: ", name);
-      console.log("req.socket.remoteAddress:", req.socket.remoteAddress);
-      // console.log("players: ", players);
+      // create table if it not already exists
+      await poll.query(
+        `
+          CREATE TABLE IF NOT EXISTS games (
+            game_id serial PRIMARY KEY,
+            game_creator_id INTEGER NOT NULL,
+            game_created_on TIMESTAMP NOT NULL,
+            game_ended_on TIMESTAMP,
+            player_array JSONB,
+            FOREIGN KEY (game_creator_id) REFERENCES users (user_id)
+          )
+        `
+      );
 
       // deposit or withdraw
       // const total = total_balance + deposit_amount;
-      // const transaction_date = new Date();
-      // await client.query(
-      //   `insert into transactions(transaction_date, deposit_amount, card_id, balance, deposit_description)
-      //      values($1, $2, $3, $4, $5)
-      //      returning *
-      //     `,
-      //   [transaction_date, deposit_amount, card_id, total, deposit_description]
-      // );
+      const gameCreatedOn = new Date();
+      await client.query(
+        `insert into games(game_creator_id, game_created_on, player_array)
+           values($1, $2, $3)
+           returning *
+          `,
+        // JSON.stringify(playerArray) to save array of json objects
+        // to DB if not stringify before it saves weird
+        [user_id, gameCreatedOn, JSON.stringify(playerArray)]
+      );
+
+      logging.info(NAMESPACE, "Adding one to games creator total count");
+      // adding one to games creator total count
+      await client.query(
+        "UPDATE users SET games_created = games_created + 1 WHERE user_id = $1",
+        [user_id]
+      );
 
       await client.query("commit");
 
@@ -49,4 +68,21 @@ const createGame = async (req: RequestWithUser, res: Response) => {
   }
 };
 
-export default { createGame };
+export const getAllGames = async (req: RequestWithUser, res: Response) => {
+  if (req.user) {
+    const { user_id } = req.user;
+    try {
+      const result = await poll.query(
+        "SELECT * FROM games WHERE game_creator_id = $1",
+        [user_id]
+      );
+      res.status(200).json(result.rows);
+    } catch (error) {
+      res.status(404).json("not found!");
+    }
+  } else {
+    res.status(401).json("unauthorized!");
+  }
+};
+
+export default { createGame, getAllGames };
