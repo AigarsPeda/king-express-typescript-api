@@ -46,7 +46,7 @@ const createGame = async (req: RequestWithUser, res: Response) => {
       logging.info(NAMESPACE, "Adding one to games creator total count");
       // adding one to games creator total count
       await client.query(
-        "UPDATE users SET games_created = games_created + 1 WHERE user_id = $1",
+        "UPDATE users_stats SET games_created = games_created + 1 WHERE user_id = $1",
         [user_id]
       );
 
