@@ -26,11 +26,7 @@ export const createUser = async (req: Request, res: Response) => {
           password VARCHAR ( 255 ) NOT NULL,
           email VARCHAR ( 255 ) UNIQUE NOT NULL,
           created_on TIMESTAMP NOT NULL,
-          last_login TIMESTAMP,
-          games_played INTEGER NOT NULL DEFAULT 0,
-          games_won INTEGER NOT NULL DEFAULT 0,
-          games_lost INTEGER NOT NULL DEFAULT 0,
-          games_created INTEGER NOT NULL DEFAULT 0
+          last_login TIMESTAMP
         )
       `
     );
@@ -53,6 +49,28 @@ export const createUser = async (req: Request, res: Response) => {
     );
 
     logging.info(NAMESPACE, "User created: ", newUser.rows[0]);
+
+    await poll.query(
+      `
+        CREATE TABLE IF NOT EXISTS users_stats (
+          stats_id serial PRIMARY KEY,
+          games_played INTEGER NOT NULL DEFAULT 0,
+          games_won INTEGER NOT NULL DEFAULT 0,
+          games_lost INTEGER NOT NULL DEFAULT 0,
+          games_created INTEGER NOT NULL DEFAULT 0,
+          user_id INTEGER NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+      `
+    );
+
+    await poll.query(
+      `insert into users_stats(user_id)
+         values($1)
+         returning *
+        `,
+      [newUser.rows[0].user_id]
+    );
 
     // sign jsonwebtoken to save it in front
     // and identify user later
