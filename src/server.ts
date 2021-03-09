@@ -3,6 +3,7 @@ import http from "http";
 import config from "./config/config";
 import logging from "./config/logging";
 import { authMiddleware } from "./middleware/authMiddleware";
+import authRoutes from "./routes/auth";
 import gameRoutes from "./routes/game";
 import userRoutes from "./routes/user";
 
@@ -49,8 +50,10 @@ router.use((req, res, next) => {
 });
 
 /** Routes go here */
-router.use("/user", userRoutes);
-router.use("/game", authMiddleware, gameRoutes);
+
+router.use("/v1", authRoutes);
+router.use("/v1", authMiddleware, userRoutes);
+router.use("/v1", authMiddleware, gameRoutes);
 
 /** Error handling */
 router.use((req, res, next) => {
