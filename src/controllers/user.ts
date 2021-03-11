@@ -29,7 +29,18 @@ export const updateUser = async (req: RequestWithUser, res: Response) => {
 
       logging.info(NAMESPACE, "User updated: ", updateUser.rows[0]);
 
-      // TODO: create new jws token
+      console.log("process.env.SECRET_KEY: ", process.env.SECRET_KEY);
+      // sign jsonwebtoken to save it in front
+      // and identify user later
+      const token = jwt.sign(
+        { user: updateUser.rows[0] },
+        process.env.SECRET_KEY!
+      );
+
+      return res.status(200).json({
+        user: updateUser.rows[0],
+        token: token
+      });
     } catch (error) {
       logging.error(NAMESPACE, error.message, error);
       return res.status(503).json({ error: "service unavailable" });
