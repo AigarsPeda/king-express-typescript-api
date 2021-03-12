@@ -2,7 +2,7 @@ import argon2 from "argon2";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import logging from "../config/logging";
-import { poll } from "../config/postgresql";
+import { getClient, poll } from "../config/postgresql";
 import RequestWithUser from "../interfaces/requestWithUser";
 
 const NAMESPACE = "User";
@@ -29,7 +29,6 @@ export const updateUser = async (req: RequestWithUser, res: Response) => {
 
       logging.info(NAMESPACE, "User updated: ", updateUser.rows[0]);
 
-      console.log("process.env.SECRET_KEY: ", process.env.SECRET_KEY);
       // sign jsonwebtoken to save it in front
       // and identify user later
       const token = jwt.sign(
@@ -50,4 +49,58 @@ export const updateUser = async (req: RequestWithUser, res: Response) => {
   }
 };
 
-export default { updateUser };
+export const deleteUser = async (req: RequestWithUser, res: Response) => {
+  logging.info(NAMESPACE, "Delete user");
+  if (req.user) {
+    try {
+      const client = await getClient();
+      if (!client) return res.status(503).json("no connection with db");
+
+      const { user_id } = req.user;
+      const { user_id_param } = req.params;
+
+      if (user_id === parseInt(user_id_param)) {
+        await client.query("begin");
+        // all user-related data must be deleted first
+        // and only then user
+        await client.query(
+          `
+            DELETE FROM games
+            WHERE game_creator_id = $1;
+            `,
+          [user_id]
+        );
+
+        await client.query(
+          `
+            DELETE FROM users_stats
+            WHERE user_id = $1;
+            `,
+          [user_id]
+        );
+
+        await client.query(
+          `
+            DELETE FROM users
+            WHERE user_id = $1;
+            `,
+          [user_id]
+        );
+
+        await client.query("commit");
+
+        logging.info(NAMESPACE, "User deleted");
+        res.status(200).json("User deleted");
+      } else {
+        res.status(401).json("Unauthorized!");
+      }
+    } catch (error) {
+      logging.error(NAMESPACE, error.message, error);
+      return res.status(503).json({ error: "service unavailable" });
+    }
+  } else {
+    res.status(401).json("Unauthorized!");
+  }
+};
+
+export default { updateUser, deleteUser };
