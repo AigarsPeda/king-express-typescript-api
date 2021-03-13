@@ -2,6 +2,7 @@ import { Response } from "express";
 import logging from "../config/logging";
 import { getClient, poll } from "../config/postgresql";
 import RequestWithUser from "../interfaces/requestWithUser";
+import { IPlayerArray } from "../types/playerArray";
 
 const NAMESPACE = "Game";
 
@@ -14,7 +15,7 @@ const createGame = async (req: RequestWithUser, res: Response) => {
     try {
       await client.query("begin");
       const { user_id } = req.user;
-      const { playerArray } = req.body;
+      const { playerArray }: { playerArray: IPlayerArray } = req.body;
 
       // create table if it not already exists
       await poll.query(
@@ -43,24 +44,43 @@ const createGame = async (req: RequestWithUser, res: Response) => {
         [user_id, gameCreatedOn, JSON.stringify(playerArray)]
       );
 
+      // find games creator
+      const gameCreator = playerArray.find((player) => {
+        return player.gameCreator === true;
+      });
+
       logging.info(NAMESPACE, "Adding one to games creator total count");
-      // adding one to games creator total count
-      await client.query(
-        "UPDATE users_stats SET games_created = games_created + 1 WHERE user_id = $1",
-        [user_id]
-      );
+
+      // if game creator plays add to played games count
+      // otherwise don't
+      if (gameCreator) {
+        logging.info(
+          NAMESPACE,
+          "Adding one to games creator total count and to the point overall"
+        );
+        await client.query(
+          "UPDATE users_stats SET games_created = games_created + 1, games_played = games_played + 1, point_overall = point_overall + $2  WHERE user_id = $1",
+          [user_id, gameCreator.score]
+        );
+      } else {
+        logging.info(NAMESPACE, "Adding one to games creator total count");
+        await client.query(
+          "UPDATE users_stats SET games_created = games_created + 1 WHERE user_id = $1",
+          [user_id]
+        );
+      }
 
       await client.query("commit");
 
       logging.info(NAMESPACE, "Game created");
 
-      res.status(200).json("deposit successful!");
+      res.status(200).json("Game created successful!");
     } catch (error) {
       await client.query("rollback");
       logging.error(NAMESPACE, error.message, error);
 
       res.status(400).send({
-        add_error: "Error while depositing amount..Try again later."
+        error: "Error while creating game... Try again later."
       });
     } finally {
       client.release();
