@@ -57,6 +57,7 @@ export const createUser = async (req: Request, res: Response) => {
       `
         CREATE TABLE IF NOT EXISTS users_stats (
           stats_id serial PRIMARY KEY,
+          point_overall INTEGER NOT NULL DEFAULT 0,
           games_played INTEGER NOT NULL DEFAULT 0,
           games_won INTEGER NOT NULL DEFAULT 0,
           games_lost INTEGER NOT NULL DEFAULT 0,
