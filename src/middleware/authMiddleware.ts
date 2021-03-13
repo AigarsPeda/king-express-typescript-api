@@ -8,23 +8,31 @@ export const authMiddleware = (
   res: Response,
   next: NextFunction
 ) => {
-  // get auth header value
-  const bearerHeader = req.headers["authorization"];
+  /** get auth header value */
+  // const bearerHeader = req.headers["authorization"];
+
+  /** Get vale from cookies */
+  const bearerCookie = req.cookies.access_token;
 
   if (
-    typeof bearerHeader !== "undefined" &&
-    bearerHeader.startsWith("Bearer ")
+    typeof bearerCookie !== "undefined" &&
+    bearerCookie.startsWith("Bearer ")
   ) {
-    // split at the space
-    const bearerToken = bearerHeader.split(" ");
-    // get token from array
+    /** Split at the space */
+    const bearerToken = bearerCookie.split(" ");
+
+    /** Get token from array */
     const token = bearerToken[1];
+
+    /** Verified token */
     try {
       const { user } = jwt.verify(token, process.env.SECRET_KEY!) as {
         user: IUser;
       };
 
+      /** Adding user to request add passing it forwards */
       req.user = user;
+
       return next();
     } catch (error) {
       console.log("JWT ERROR: ", error.message);
