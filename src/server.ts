@@ -6,7 +6,6 @@ import { authMiddleware } from "./middleware/authMiddleware";
 import authRoutes from "./routes/auth";
 import gameRoutes from "./routes/game";
 import userRoutes from "./routes/user";
-import cookieParser from "cookie-parser";
 
 const NAMESPACE = "Server";
 const router = express();
@@ -30,9 +29,6 @@ router.use((req, res, next) => {
   next();
 });
 
-/** Get cookie from req for authentication */
-router.use(cookieParser());
-
 /** Parse the body of the request */
 router.use(express.urlencoded({ extended: true }));
 router.use(express.json());
@@ -54,7 +50,6 @@ router.use((req, res, next) => {
 });
 
 /** Routes go here */
-
 router.use("/v1", authRoutes);
 router.use("/v1", authMiddleware, userRoutes);
 router.use("/v1", authMiddleware, gameRoutes);
