@@ -82,7 +82,7 @@ export const createUser = async (req: Request, res: Response) => {
 
     // returning user and token
     return res.status(200).json({
-      user: newUser.rows[0],
+      // user: newUser.rows[0],
       token: token
     });
   } catch (error) {
@@ -130,7 +130,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
       // return token and found user
       return res.status(200).json({
-        user: updatedClient.rows[0],
+        // user: updatedClient.rows[0],
         token: token
       });
     } else {
