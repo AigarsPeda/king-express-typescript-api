@@ -8,18 +8,15 @@ export const authMiddleware = (
   res: Response,
   next: NextFunction
 ) => {
-  /** get auth header value */
-  // const bearerHeader = req.headers["authorization"];
-
-  /** Get vale from cookies */
-  const bearerCookie = req.cookies.access_token;
+  /** get auth authorization header value */
+  const bearerHeader = req.headers["authorization"];
 
   if (
-    typeof bearerCookie !== "undefined" &&
-    bearerCookie.startsWith("Bearer ")
+    typeof bearerHeader !== "undefined" &&
+    bearerHeader.startsWith("Bearer ")
   ) {
     /** Split at the space */
-    const bearerToken = bearerCookie.split(" ");
+    const bearerToken = bearerHeader.split(" ");
 
     /** Get token from array */
     const token = bearerToken[1];
