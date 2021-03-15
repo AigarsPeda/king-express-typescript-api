@@ -78,7 +78,13 @@ export const createUser = async (req: Request, res: Response) => {
 
     // sign jsonwebtoken to save it in front
     // and identify user later
-    const token = jwt.sign({ user: newUser.rows[0] }, process.env.SECRET_KEY!);
+    const token = jwt.sign(
+      {
+        user: newUser.rows[0]
+        // exp: Math.floor(Date.now() / 1000) + 60 * 60
+      },
+      process.env.SECRET_KEY!
+    );
 
     // returning user and token
     return res.status(200).json({
@@ -122,7 +128,10 @@ export const loginUser = async (req: Request, res: Response) => {
       // sign jsonwebtoken to save it in front
       // end identify user later
       const token = jwt.sign(
-        { user: updatedClient.rows[0] },
+        {
+          user: updatedClient.rows[0]
+          // exp: Math.floor(Date.now() / 1000) + 60 * 60
+        },
         process.env.SECRET_KEY!
       );
 
