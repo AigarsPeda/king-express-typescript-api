@@ -65,8 +65,8 @@ export const deleteUser = async (req: RequestWithUser, res: Response) => {
         // and only then user
         await client.query(
           `
-            DELETE FROM games
-            WHERE game_creator_id = $1;
+            DELETE FROM tournaments
+            WHERE tournaments_creator_id = $1;
             `,
           [user_id]
         );
