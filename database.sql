@@ -12,21 +12,21 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS users_stats (
   stats_id serial PRIMARY KEY,
-  point_overall INTEGER NOT NULL DEFAULT 0,
-  games_played INTEGER NOT NULL DEFAULT 0,
-  games_won INTEGER NOT NULL DEFAULT 0,
-  games_lost INTEGER NOT NULL DEFAULT 0,
-  games_created INTEGER NOT NULL DEFAULT 0,
+  points_overall INTEGER NOT NULL DEFAULT 0,
+  tournaments_played INTEGER NOT NULL DEFAULT 0,
+  tournaments_won INTEGER NOT NULL DEFAULT 0,
+  tournaments_lost INTEGER NOT NULL DEFAULT 0,
+  tournaments_created INTEGER NOT NULL DEFAULT 0,
   user_id INTEGER NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users (user_id)
-);
+)
 
 
-CREATE TABLE IF NOT EXISTS games (
-  game_id serial PRIMARY KEY,
-  game_creator_id INTEGER NOT NULL,
-  game_created_on TIMESTAMP NOT NULL,
-  game_ended_on TIMESTAMP,
+CREATE TABLE IF NOT EXISTS tournaments (
+  tournament_id serial PRIMARY KEY,
+  tournament_creator_id INTEGER NOT NULL,
+  tournament_created_on TIMESTAMP NOT NULL,
+  tournament_ended_on TIMESTAMP,
   player_array JSONB,
-  FOREIGN KEY (game_creator_id) REFERENCES users (user_id)
-);
+  FOREIGN KEY (tournament_creator_id) REFERENCES users (user_id)
+)
