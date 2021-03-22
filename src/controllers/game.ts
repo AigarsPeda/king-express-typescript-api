@@ -4,11 +4,11 @@ import { getClient, poll } from "../config/postgresql";
 import RequestWithUser from "../interfaces/requestWithUser";
 import { IPlayerArray } from "../types/playerArray";
 
-const NAMESPACE = "Game";
+const NAMESPACE = "Tournament";
 
 const createGame = async (req: RequestWithUser, res: Response) => {
   if (req.user) {
-    logging.info(NAMESPACE, "Creating game");
+    logging.info(NAMESPACE, "Creating Tournament");
 
     const client = await getClient();
     if (!client) return res.status(503).json("no connection with db");
@@ -20,13 +20,13 @@ const createGame = async (req: RequestWithUser, res: Response) => {
       // create table if it not already exists
       await poll.query(
         `
-          CREATE TABLE IF NOT EXISTS games (
-            game_id serial PRIMARY KEY,
-            game_creator_id INTEGER NOT NULL,
-            game_created_on TIMESTAMP NOT NULL,
-            game_ended_on TIMESTAMP,
+          CREATE TABLE IF NOT EXISTS tournaments (
+            tournament_id serial PRIMARY KEY,
+            tournament_creator_id INTEGER NOT NULL,
+            tournament_created_on TIMESTAMP NOT NULL,
+            tournament_ended_on TIMESTAMP,
             player_array JSONB,
-            FOREIGN KEY (game_creator_id) REFERENCES users (user_id)
+            FOREIGN KEY (tournament_creator_id) REFERENCES users (user_id)
           )
         `
       );
@@ -35,7 +35,7 @@ const createGame = async (req: RequestWithUser, res: Response) => {
       // const total = total_balance + deposit_amount;
       const gameCreatedOn = new Date();
       await client.query(
-        `insert into games(game_creator_id, game_created_on, player_array)
+        `insert into tournaments(tournament_creator_id, tournament_created_on, player_array)
            values($1, $2, $3)
            returning *
           `,
@@ -49,38 +49,58 @@ const createGame = async (req: RequestWithUser, res: Response) => {
         return player.gameCreator === true;
       });
 
-      logging.info(NAMESPACE, "Adding one to games creator total count");
+      logging.info(NAMESPACE, "Adding one to tournaments creator total count");
 
       // if game creator plays add to played games count
       // otherwise don't
-      if (gameCreator) {
+      if (gameCreator && parseInt(gameCreator.id) === user_id) {
         logging.info(
           NAMESPACE,
-          "Adding one to games creator total count and to the point overall"
+          "Adding one to tournaments creator total count and to the point overall"
         );
+
         await client.query(
-          "UPDATE users_stats SET games_created = games_created + 1, games_played = games_played + 1, point_overall = point_overall + $2  WHERE user_id = $1",
+          "UPDATE users_stats SET tournaments_created = tournaments_created + 1, tournaments_played = tournaments_played + 1, points_overall = points_overall + $2  WHERE user_id = $1",
           [user_id, gameCreator.score]
         );
       } else {
-        logging.info(NAMESPACE, "Adding one to games creator total count");
+        logging.info(
+          NAMESPACE,
+          "Adding one to tournaments creator total count"
+        );
         await client.query(
-          "UPDATE users_stats SET games_created = games_created + 1 WHERE user_id = $1",
+          "UPDATE users_stats SET tournaments_created = tournaments_created + 1 WHERE user_id = $1",
+          [user_id]
+        );
+      }
+
+      // check if game creator is winner
+      if (gameCreator && gameCreator.winner === true) {
+        logging.info(NAMESPACE, "Updating users tournaments won");
+
+        await client.query(
+          "UPDATE users_stats SET tournaments_won = tournaments_won + 1 WHERE user_id = $1",
+          [user_id]
+        );
+      } else {
+        logging.info(NAMESPACE, "Updating users tournaments lost");
+        await client.query(
+          "UPDATE users_stats SET tournaments_lost = tournaments_lost + 1 WHERE user_id = $1",
           [user_id]
         );
       }
 
       await client.query("commit");
 
-      logging.info(NAMESPACE, "Game created");
+      logging.info(NAMESPACE, "Tournament created");
 
-      res.status(200).json("Game created successful!");
+      res.status(200).json("Tournament created successful!");
     } catch (error) {
       await client.query("rollback");
       logging.error(NAMESPACE, error.message, error);
 
       res.status(400).send({
-        error: "Error while creating game... Try again later."
+        error: "Error while creating Tournament... Try again later."
       });
     } finally {
       client.release();
@@ -93,7 +113,7 @@ export const getAllGames = async (req: RequestWithUser, res: Response) => {
     const { user_id } = req.user;
     try {
       const result = await poll.query(
-        "SELECT * FROM games WHERE game_creator_id = $1",
+        "SELECT * FROM tournaments WHERE tournament_creator_id = $1",
         [user_id]
       );
       res.status(200).json(result.rows);
