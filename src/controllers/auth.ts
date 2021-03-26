@@ -10,14 +10,30 @@ export const createUser = async (req: Request, res: Response) => {
   logging.info(NAMESPACE, "Inserting user");
 
   try {
-    const { email, password, name, surname } = req.body;
+    const {
+      email,
+      password,
+      name,
+      surname
+    }: {
+      email: string;
+      password: string;
+      name: string;
+      surname: string;
+    } = req.body;
     const created_on = new Date();
+
+    if (!email || !password || !name || !surname) {
+      return res
+        .status(400)
+        .json({ error: "not all necessary fields was provided" });
+    }
 
     // TODO: validate email and password
     // TODO: validate name and surname
 
     // hash password
-    const hashPassword = await argon2.hash(password);
+    const hashPassword = await argon2.hash(password.trim());
 
     // create table if it not already exists
     await poll.query(
@@ -93,14 +109,20 @@ export const createUser = async (req: Request, res: Response) => {
     });
   } catch (error) {
     logging.error(NAMESPACE, error.message, error);
-    return res.json({ error: "user name or email already taken" });
+    return res.json({ error: "email already taken" });
   }
 };
 
 export const loginUser = async (req: Request, res: Response) => {
   logging.info(NAMESPACE, "Logging in user");
   try {
-    const { email, password } = req.body;
+    const { email, password }: { email: string; password: string } = req.body;
+
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ error: "not all necessary fields was provided" });
+    }
 
     // find user id DB with email
     const loginUser = await poll.query("SELECT * FROM users WHERE email = $1", [
@@ -114,7 +136,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
     // check password
     // compare password entered and what is saved in db
-    if (await argon2.verify(loginUser.rows[0].password, password)) {
+    if (await argon2.verify(loginUser.rows[0].password, password.trim())) {
       const last_login = new Date();
 
       // updating to save login date
@@ -138,6 +160,7 @@ export const loginUser = async (req: Request, res: Response) => {
       logging.info(NAMESPACE, "User login: ", updatedClient.rows[0]);
 
       // return token and found user
+
       return res.status(200).json({
         // user: updatedClient.rows[0],
         token: token
