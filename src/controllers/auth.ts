@@ -67,7 +67,7 @@ export const createUser = async (req: Request, res: Response) => {
       ]
     );
 
-    logging.info(NAMESPACE, "User created: ", newUser.rows[0]);
+    logging.info(NAMESPACE, "New user created");
 
     await poll.query(
       `
@@ -130,7 +130,7 @@ export const loginUser = async (req: Request, res: Response) => {
     ]);
 
     // user not found
-    if (!loginUser.rows[0]) {
+    if (loginUser.rows[0] === undefined) {
       return res.status(400).json({ error: "user not found" });
     }
 
@@ -157,7 +157,7 @@ export const loginUser = async (req: Request, res: Response) => {
         process.env.SECRET_KEY!
       );
 
-      logging.info(NAMESPACE, "User login: ", updatedClient.rows[0]);
+      logging.info(NAMESPACE, "User login");
 
       // return token and found user
 
