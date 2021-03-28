@@ -57,13 +57,13 @@ router.use("/v1", authMiddleware, statsRoutes);
 router.use("/v1", authMiddleware, gameRoutes);
 
 /** Error handling */
-// router.use((req, res, next) => {
-//   const error = new Error("Not found");
+router.use((req, res, next) => {
+  const error = new Error("Not found");
 
-//   res.status(404).json({
-//     message: error.message
-//   });
-// });
+  res.status(404).json({
+    message: error.message
+  });
+});
 
 const httpServer = http.createServer(router);
 
