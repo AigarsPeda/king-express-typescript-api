@@ -14,12 +14,14 @@ export const createUser = async (req: Request, res: Response) => {
       email,
       password,
       name,
-      surname
+      surname,
+      terms
     }: {
       email: string;
       password: string;
       name: string;
       surname: string;
+      terms: boolean;
     } = req.body;
     const created_on = new Date();
 
@@ -27,6 +29,20 @@ export const createUser = async (req: Request, res: Response) => {
       return res
         .status(400)
         .json({ error: "not all necessary fields was provided" });
+    }
+
+    if (terms !== true) {
+      return res
+        .status(400)
+        .json({ error: "you must agree to terms of service" });
+    }
+
+    const emailPattern = new RegExp(
+      /^(("[\w-\s]+")|([\w-]+(?:\.[\w-]+)*)|("[\w-\s]+")([\w-]+(?:\.[\w-]+)*))(@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$)|(@\[?((25[0-5]\.|2[0-4][0-9]\.|1[0-9]{2}\.|[0-9]{1,2}\.))((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\]?$)/i
+    );
+
+    if (!emailPattern.test(email)) {
+      return res.status(400).json({ error: "email isn't valid" });
     }
 
     // TODO: validate email and password
@@ -45,7 +61,8 @@ export const createUser = async (req: Request, res: Response) => {
           password VARCHAR ( 255 ) NOT NULL,
           email VARCHAR ( 255 ) UNIQUE NOT NULL,
           created_on TIMESTAMP NOT NULL,
-          last_login TIMESTAMP
+          last_login TIMESTAMP,
+          agree_to_terms BOOLEAN NOT NULL
         )
       `
     );
@@ -54,8 +71,8 @@ export const createUser = async (req: Request, res: Response) => {
     // without password to return it later
     // with response
     const newUser = await poll.query(
-      ` INSERT INTO users (name, surname, email, password, created_on, last_login) 
-        VALUES($1, $2, $3, $4, $5, $5) 
+      ` INSERT INTO users (name, surname, email, password, created_on, last_login, agree_to_terms) 
+        VALUES($1, $2, $3, $4, $5, $5, $6) 
         RETURNING name, surname, email, created_on, user_id
       `,
       [
@@ -63,7 +80,8 @@ export const createUser = async (req: Request, res: Response) => {
         surname.toLowerCase(),
         email.toLowerCase(),
         hashPassword,
-        created_on
+        created_on,
+        terms
       ]
     );
 
