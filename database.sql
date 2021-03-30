@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR ( 255 ) NOT NULL,
   email VARCHAR ( 255 ) UNIQUE NOT NULL,
   created_on TIMESTAMP NOT NULL,
-  last_login TIMESTAMP
+  last_login TIMESTAMP,
+  agree_to_terms BOOLEAN NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS users_stats (
