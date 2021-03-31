@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import logging from "../config/logging";
 import { poll } from "../config/postgresql";
+import { validateUserCreate } from "../helpers/validateUserCreate";
 
 const NAMESPACE = "Auth";
 
@@ -25,33 +26,23 @@ export const createUser = async (req: Request, res: Response) => {
     } = req.body;
     const created_on = new Date();
 
-    if (!email || !password || !name || !surname) {
-      return res
-        .status(400)
-        .json({ error: "not all necessary fields was provided" });
+    /** Validating inputs */
+    const { isValid, errorMessage } = validateUserCreate({
+      name: name,
+      surname: surname,
+      email: email,
+      password: password,
+      terms: terms
+    });
+
+    if (!isValid) {
+      return res.status(400).json({ error: errorMessage });
     }
 
-    if (terms !== true) {
-      return res
-        .status(400)
-        .json({ error: "you must agree to terms of service" });
-    }
-
-    const emailPattern = new RegExp(
-      /^(("[\w-\s]+")|([\w-]+(?:\.[\w-]+)*)|("[\w-\s]+")([\w-]+(?:\.[\w-]+)*))(@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$)|(@\[?((25[0-5]\.|2[0-4][0-9]\.|1[0-9]{2}\.|[0-9]{1,2}\.))((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\]?$)/i
-    );
-
-    if (!emailPattern.test(email)) {
-      return res.status(400).json({ error: "email isn't valid" });
-    }
-
-    // TODO: validate email and password
-    // TODO: validate name and surname
-
-    // hash password
+    /** Hashing password */
     const hashPassword = await argon2.hash(password.trim());
 
-    // create table if it not already exists
+    /** Create table if it not already exists */
     await poll.query(
       `
         CREATE TABLE IF NOT EXISTS users (
@@ -67,9 +58,10 @@ export const createUser = async (req: Request, res: Response) => {
       `
     );
 
-    // saving user to db and returning new user
-    // without password to return it later
-    // with response
+    /** Saving user to db and returning new user
+     *  without password
+     * to return it later with response
+     */
     const newUser = await poll.query(
       ` INSERT INTO users (name, surname, email, password, created_on, last_login, agree_to_terms) 
         VALUES($1, $2, $3, $4, $5, $5, $6) 
@@ -110,17 +102,19 @@ export const createUser = async (req: Request, res: Response) => {
       [newUser.rows[0].user_id]
     );
 
-    // sign jsonwebtoken to save it in front
-    // and identify user later
+    /** Sign jsonwebtoken to save it in front
+     * and identify user later
+     * */
     const token = jwt.sign(
       {
         user: newUser.rows[0]
+        /** One hour */
         // exp: Math.floor(Date.now() / 1000) + 60 * 60
       },
       process.env.SECRET_KEY!
     );
 
-    // returning user and token
+    /** Returning JWT token */
     return res.status(200).json({
       // user: newUser.rows[0],
       token: token
@@ -136,28 +130,36 @@ export const loginUser = async (req: Request, res: Response) => {
   try {
     const { email, password }: { email: string; password: string } = req.body;
 
-    if (!email || !password) {
+    /** Validating inputs */
+    if (email.trim().length === 0 || password.trim().length === 0) {
       return res
         .status(400)
         .json({ error: "not all necessary fields was provided" });
     }
 
-    // find user id DB with email
+    const emailPattern = new RegExp(
+      /^(("[\w-\s]+")|([\w-]+(?:\.[\w-]+)*)|("[\w-\s]+")([\w-]+(?:\.[\w-]+)*))(@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$)|(@\[?((25[0-5]\.|2[0-4][0-9]\.|1[0-9]{2}\.|[0-9]{1,2}\.))((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\]?$)/i
+    );
+
+    if (!emailPattern.test(email)) {
+      return res.status(400).json({ error: "email isn't valid" });
+    }
+
+    /** Find user id DB with email */
     const loginUser = await poll.query("SELECT * FROM users WHERE email = $1", [
       email.toLowerCase()
     ]);
 
-    // user not found
+    /** User not found */
     if (loginUser.rows[0] === undefined) {
       return res.status(400).json({ error: "user not found" });
     }
 
-    // check password
-    // compare password entered and what is saved in db
+    /** Compare password entered and what is saved in db */
     if (await argon2.verify(loginUser.rows[0].password, password.trim())) {
       const last_login = new Date();
 
-      // updating to save login date
+      /** Updating last login date to current date */
       const updatedClient = await poll.query(
         `UPDATE users SET last_login = $1 WHERE email = $2 
          RETURNING name, surname, email, created_on, user_id
@@ -165,11 +167,13 @@ export const loginUser = async (req: Request, res: Response) => {
         [last_login, email.toLowerCase()]
       );
 
-      // sign jsonwebtoken to save it in front
-      // end identify user later
+      /** Sign jsonwebtoken to save it in front
+       * and identify user later
+       * */
       const token = jwt.sign(
         {
           user: updatedClient.rows[0]
+          /** One hour */
           // exp: Math.floor(Date.now() / 1000) + 60 * 60
         },
         process.env.SECRET_KEY!
@@ -177,14 +181,13 @@ export const loginUser = async (req: Request, res: Response) => {
 
       logging.info(NAMESPACE, "User login");
 
-      // return token and found user
-
+      /** Returning JWT token */
       return res.status(200).json({
         // user: updatedClient.rows[0],
         token: token
       });
     } else {
-      // password did not match
+      /** Password did not match*/
       return res.status(401).json({ error: "wrong credentials" });
     }
   } catch (error) {
