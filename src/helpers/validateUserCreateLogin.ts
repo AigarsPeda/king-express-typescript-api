@@ -28,6 +28,11 @@ export const validateUserCreateLogin = ({
     errorMessage = "not all necessary fields was provided";
   }
 
+  // if (password.trim().length === 0) {
+  //   isValid = false;
+  //   errorMessage = "not all necessary fields was provided";
+  // }
+
   if (terms !== true) {
     isValid = false;
     errorMessage = "you must agree to terms of service";
@@ -38,7 +43,7 @@ export const validateUserCreateLogin = ({
     errorMessage = "email isn't valid";
   }
 
-  if (password.length <= 5) {
+  if (password.trim().length <= 5) {
     isValid = false;
     errorMessage = "password is to short, must be at least 5 characters long";
   }
