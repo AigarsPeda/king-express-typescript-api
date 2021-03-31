@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import logging from "../config/logging";
 import { poll } from "../config/postgresql";
-import { validateUserCreateLogin } from "../helpers/validateUserCreateLogin";
+import { validateUserCreate } from "../helpers/validateUserCreate";
 
 const NAMESPACE = "Auth";
 
@@ -27,7 +27,7 @@ export const createUser = async (req: Request, res: Response) => {
     const created_on = new Date();
 
     /** Validating inputs */
-    const { isValid, errorMessage } = validateUserCreateLogin({
+    const { isValid, errorMessage } = validateUserCreate({
       name: name,
       surname: surname,
       email: email,
