@@ -28,11 +28,6 @@ export const validateUserCreateLogin = ({
     errorMessage = "not all necessary fields was provided";
   }
 
-  // if (password.trim().length === 0) {
-  //   isValid = false;
-  //   errorMessage = "not all necessary fields was provided";
-  // }
-
   if (terms !== true) {
     isValid = false;
     errorMessage = "you must agree to terms of service";
