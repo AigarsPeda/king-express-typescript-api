@@ -3,7 +3,8 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import logging from "../config/logging";
 import { poll } from "../config/postgresql";
-import { validateUserCreate } from "../helpers/validateUserCreate";
+import { validateCreateUser } from "../helpers/validateCreateUser";
+import { validateLoginUser } from "../helpers/validateLoginUser";
 
 const NAMESPACE = "Auth";
 
@@ -27,7 +28,7 @@ export const createUser = async (req: Request, res: Response) => {
     const created_on = new Date();
 
     /** Validating inputs */
-    const { isValid, errorMessage } = validateUserCreate({
+    const { isValid, errorMessage } = validateCreateUser({
       name: name,
       surname: surname,
       email: email,
@@ -35,7 +36,9 @@ export const createUser = async (req: Request, res: Response) => {
       terms: terms
     });
 
+    /** If isn't valid returning error message */
     if (!isValid) {
+      logging.info(NAMESPACE, "Creating user error: ", errorMessage);
       return res.status(400).json({ error: errorMessage });
     }
 
@@ -94,6 +97,7 @@ export const createUser = async (req: Request, res: Response) => {
       `
     );
 
+    logging.info(NAMESPACE, "Created users stats record");
     await poll.query(
       `insert into users_stats(user_id)
          values($1)
@@ -131,18 +135,15 @@ export const loginUser = async (req: Request, res: Response) => {
     const { email, password }: { email: string; password: string } = req.body;
 
     /** Validating inputs */
-    if (email.trim().length === 0 || password.trim().length === 0) {
-      return res
-        .status(400)
-        .json({ error: "not all necessary fields was provided" });
-    }
+    const { isValid, errorMessage } = validateLoginUser({
+      email: email,
+      password: password
+    });
 
-    const emailPattern = new RegExp(
-      /^(("[\w-\s]+")|([\w-]+(?:\.[\w-]+)*)|("[\w-\s]+")([\w-]+(?:\.[\w-]+)*))(@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$)|(@\[?((25[0-5]\.|2[0-4][0-9]\.|1[0-9]{2}\.|[0-9]{1,2}\.))((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\]?$)/i
-    );
-
-    if (!emailPattern.test(email)) {
-      return res.status(400).json({ error: "email isn't valid" });
+    /** If isn't valid returning error message */
+    if (!isValid) {
+      logging.info(NAMESPACE, "Logging error: ", errorMessage);
+      return res.status(400).json({ error: errorMessage });
     }
 
     /** Find user id DB with email */
@@ -152,6 +153,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
     /** User not found */
     if (loginUser.rows[0] === undefined) {
+      logging.info(NAMESPACE, "User was not found");
       return res.status(400).json({ error: "user not found" });
     }
 
@@ -179,7 +181,7 @@ export const loginUser = async (req: Request, res: Response) => {
         process.env.SECRET_KEY!
       );
 
-      logging.info(NAMESPACE, "User login");
+      logging.info(NAMESPACE, "User logged in");
 
       /** Returning JWT token */
       return res.status(200).json({
@@ -188,6 +190,7 @@ export const loginUser = async (req: Request, res: Response) => {
       });
     } else {
       /** Password did not match*/
+      logging.info(NAMESPACE, "Password did not match");
       return res.status(401).json({ error: "wrong credentials" });
     }
   } catch (error) {
