@@ -55,39 +55,77 @@ const createGame = async (req: RequestWithUser, res: Response) => {
 
       // If game creator plays add one to played games count
       // otherwise don't
-      if (gameCreator && parseInt(gameCreator.id) === user_id) {
-        logging.info(
-          NAMESPACE,
-          "Adding one to tournaments creator total count and to the point overall"
-        );
+      // if (
+      //   gameCreator &&
+      //   parseInt(gameCreator.id) === user_id &&
+      //   foundGameCreatorInPlyerArray &&
+      //   foundGameCreatorInPlyerArray.playerName.toLocaleLowerCase() === name
+      // ) {
+      //   logging.info(
+      //     NAMESPACE,
+      //     "Adding one to tournaments creator total count and to the point overall"
+      //   );
 
-        await client.query(
-          "UPDATE users_stats SET tournaments_created = tournaments_created + 1, tournaments_played = tournaments_played + 1, points_overall = points_overall + $2  WHERE user_id = $1",
-          [user_id, foundGameCreatorInPlyerArray!.score]
-        );
+      //   await client.query(
+      //     "UPDATE users_stats SET tournaments_created = tournaments_created + 1, tournaments_played = tournaments_played + 1, points_overall = points_overall + $2  WHERE user_id = $1",
+      //     [user_id, foundGameCreatorInPlyerArray.score]
+      //   );
+      // } else {
+      //   logging.info(
+      //     NAMESPACE,
+      //     "Adding one to tournaments creator total count"
+      //   );
+      //   await client.query(
+      //     "UPDATE users_stats SET tournaments_created = tournaments_created + 1 WHERE user_id = $1",
+      //     [user_id]
+      //   );
+      // }
+
+      if (gameCreator && parseInt(gameCreator.id) === user_id) {
+        const foundGameCreatorInPlyerArray = playerArray.find((player) => {
+          return player.playerName.toLowerCase() === name;
+        });
+
+        if (foundGameCreatorInPlyerArray) {
+          logging.info(
+            NAMESPACE,
+            "Adding one to tournaments creator total count and to the point overall"
+          );
+          await client.query(
+            "UPDATE users_stats SET tournaments_created = tournaments_created + 1, tournaments_played = tournaments_played + 1, points_overall = points_overall + $2  WHERE user_id = $1",
+            [user_id, foundGameCreatorInPlyerArray.score]
+          );
+
+          if (foundGameCreatorInPlyerArray.winner === true) {
+            // Tournaments creator won
+            logging.info(NAMESPACE, "Updating users tournaments won");
+
+            await client.query(
+              "UPDATE users_stats SET tournaments_won = tournaments_won + 1 WHERE user_id = $1",
+              [user_id]
+            );
+          } else {
+            // Tournaments creator lost
+            logging.info(NAMESPACE, "Updating users tournaments lost");
+            await client.query(
+              "UPDATE users_stats SET tournaments_lost = tournaments_lost + 1 WHERE user_id = $1",
+              [user_id]
+            );
+          }
+        } else {
+          // Didn't found creator in player array
+          res.status(400).send({
+            error: "Couldn't find creator in player array"
+          });
+        }
       } else {
+        // Account owner didn't play
         logging.info(
           NAMESPACE,
           "Adding one to tournaments creator total count"
         );
         await client.query(
           "UPDATE users_stats SET tournaments_created = tournaments_created + 1 WHERE user_id = $1",
-          [user_id]
-        );
-      }
-
-      // check if game creator is winner
-      if (gameCreator && foundGameCreatorInPlyerArray!.winner === true) {
-        logging.info(NAMESPACE, "Updating users tournaments won");
-
-        await client.query(
-          "UPDATE users_stats SET tournaments_won = tournaments_won + 1 WHERE user_id = $1",
-          [user_id]
-        );
-      } else {
-        logging.info(NAMESPACE, "Updating users tournaments lost");
-        await client.query(
-          "UPDATE users_stats SET tournaments_lost = tournaments_lost + 1 WHERE user_id = $1",
           [user_id]
         );
       }
