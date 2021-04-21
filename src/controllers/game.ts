@@ -14,7 +14,7 @@ const createGame = async (req: RequestWithUser, res: Response) => {
     if (!client) return res.status(503).json("no connection with db");
     try {
       await client.query("begin");
-      const { user_id } = req.user;
+      const { user_id, name } = req.user;
       const { playerArray }: { playerArray: IPlayerArray } = req.body;
 
       // create table if it not already exists
@@ -49,11 +49,15 @@ const createGame = async (req: RequestWithUser, res: Response) => {
         return player.gameCreator === true;
       });
 
+      // console.log("gameCreator: ", gameCreator!.playerName.toLocaleLowerCase());
+      // console.log("name: ", name);
+
       logging.info(NAMESPACE, "Adding one to tournaments creator total count");
 
       // If game creator plays add one to played games count
       // otherwise don't
-      if (gameCreator && parseInt(gameCreator.id) === user_id) {
+      // TODO: Better way to check games creator
+      if (gameCreator && gameCreator.playerName.toLocaleLowerCase() === name) {
         logging.info(
           NAMESPACE,
           "Adding one to tournaments creator total count and to the point overall"
