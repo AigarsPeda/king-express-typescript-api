@@ -51,7 +51,7 @@ const createGame = async (req: RequestWithUser, res: Response) => {
 
       logging.info(NAMESPACE, "Adding one to tournaments creator total count");
 
-      // if game creator plays add to played games count
+      // If game creator plays add one to played games count
       // otherwise don't
       if (gameCreator && parseInt(gameCreator.id) === user_id) {
         logging.info(
