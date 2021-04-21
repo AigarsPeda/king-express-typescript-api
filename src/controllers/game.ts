@@ -15,9 +15,12 @@ const createGame = async (req: RequestWithUser, res: Response) => {
     try {
       await client.query("begin");
       const { user_id, name } = req.user;
-      const { playerArray }: { playerArray: IPlayerArray } = req.body;
+      const {
+        playerArray,
+        gameCreator
+      }: { playerArray: IPlayerArray; gameCreator?: { id: string } } = req.body;
 
-      // create table if it not already exists
+      // Create table if it not already exists
       await poll.query(
         `
           CREATE TABLE IF NOT EXISTS tournaments (
@@ -31,8 +34,7 @@ const createGame = async (req: RequestWithUser, res: Response) => {
         `
       );
 
-      // deposit or withdraw
-      // const total = total_balance + deposit_amount;
+      // Add new tournament to table
       const gameCreatedOn = new Date();
       await client.query(
         `insert into tournaments(tournament_creator_id, tournament_created_on, player_array)
@@ -44,20 +46,16 @@ const createGame = async (req: RequestWithUser, res: Response) => {
         [user_id, gameCreatedOn, JSON.stringify(playerArray)]
       );
 
-      // find games creator
-      const gameCreator = playerArray.find((player) => {
-        return player.gameCreator === true;
+      // Find games creator
+      const foundGameCreatorInPlyerArray = playerArray.find((player) => {
+        return player.playerName.toLowerCase() === name;
       });
-
-      // console.log("gameCreator: ", gameCreator!.playerName.toLocaleLowerCase());
-      // console.log("name: ", name);
 
       logging.info(NAMESPACE, "Adding one to tournaments creator total count");
 
       // If game creator plays add one to played games count
       // otherwise don't
-      // TODO: Better way to check games creator
-      if (gameCreator && gameCreator.playerName.toLocaleLowerCase() === name) {
+      if (gameCreator && parseInt(gameCreator.id) === user_id) {
         logging.info(
           NAMESPACE,
           "Adding one to tournaments creator total count and to the point overall"
@@ -65,7 +63,7 @@ const createGame = async (req: RequestWithUser, res: Response) => {
 
         await client.query(
           "UPDATE users_stats SET tournaments_created = tournaments_created + 1, tournaments_played = tournaments_played + 1, points_overall = points_overall + $2  WHERE user_id = $1",
-          [user_id, gameCreator.score]
+          [user_id, foundGameCreatorInPlyerArray!.score]
         );
       } else {
         logging.info(
@@ -79,7 +77,7 @@ const createGame = async (req: RequestWithUser, res: Response) => {
       }
 
       // check if game creator is winner
-      if (gameCreator && gameCreator.winner === true) {
+      if (gameCreator && foundGameCreatorInPlyerArray!.winner === true) {
         logging.info(NAMESPACE, "Updating users tournaments won");
 
         await client.query(
