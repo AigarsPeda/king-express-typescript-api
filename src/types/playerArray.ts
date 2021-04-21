@@ -5,5 +5,4 @@ export type IPlayer = {
   score: string;
   winner: boolean;
   playerName: string;
-  gameCreator: boolean;
 };
