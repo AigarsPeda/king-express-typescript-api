@@ -1,6 +1,7 @@
 import argon2 from "argon2";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { createAllTables } from "../config/createAllTables";
 import logging from "../config/logging";
 import { poll } from "../config/postgresql";
 import { validateCreateUser } from "../helpers/validateCreateUser";
@@ -9,8 +10,10 @@ import { validateLoginUser } from "../helpers/validateLoginUser";
 const NAMESPACE = "Auth";
 
 export const createUser = async (req: Request, res: Response) => {
-  logging.info(NAMESPACE, "Inserting user");
+  /** Create tables if they don't exist */
+  await createAllTables();
 
+  logging.info(NAMESPACE, "Inserting user");
   try {
     const {
       email,
@@ -45,22 +48,6 @@ export const createUser = async (req: Request, res: Response) => {
     /** Hashing password */
     const hashPassword = await argon2.hash(password.trim());
 
-    /** Create table if it not already exists */
-    await poll.query(
-      `
-        CREATE TABLE IF NOT EXISTS users (
-          user_id serial PRIMARY KEY,
-          name VARCHAR ( 50 ) NOT NULL,
-          surname VARCHAR ( 50 ) NOT NULL,
-          password VARCHAR ( 255 ) NOT NULL,
-          email VARCHAR ( 255 ) UNIQUE NOT NULL,
-          created_on TIMESTAMP NOT NULL,
-          last_login TIMESTAMP,
-          agree_to_terms BOOLEAN NOT NULL
-        )
-      `
-    );
-
     /** Saving user to db and returning new user
      *  without password
      * to return it later with response
@@ -81,21 +68,6 @@ export const createUser = async (req: Request, res: Response) => {
     );
 
     logging.info(NAMESPACE, "New user created");
-
-    await poll.query(
-      `
-        CREATE TABLE IF NOT EXISTS users_stats (
-          stats_id serial PRIMARY KEY,
-          points_overall INTEGER NOT NULL DEFAULT 0,
-          tournaments_played INTEGER NOT NULL DEFAULT 0,
-          tournaments_won INTEGER NOT NULL DEFAULT 0,
-          tournaments_lost INTEGER NOT NULL DEFAULT 0,
-          tournaments_created INTEGER NOT NULL DEFAULT 0,
-          user_id INTEGER NOT NULL,
-          FOREIGN KEY (user_id) REFERENCES users (user_id)
-        )
-      `
-    );
 
     logging.info(NAMESPACE, "Created users stats record");
     await poll.query(
