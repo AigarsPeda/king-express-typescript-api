@@ -20,68 +20,36 @@ const createGame = async (req: RequestWithUser, res: Response) => {
         gameCreator
       }: { playerArray: IPlayerArray; gameCreator?: { id: string } } = req.body;
 
-      // Create table if it not already exists
-      await poll.query(
-        `
-          CREATE TABLE IF NOT EXISTS tournaments (
-            tournament_id serial PRIMARY KEY,
-            tournament_creator_id INTEGER NOT NULL,
-            tournament_created_on TIMESTAMP NOT NULL,
-            tournament_ended_on TIMESTAMP,
-            player_array JSONB,
-            FOREIGN KEY (tournament_creator_id) REFERENCES users (user_id)
-          )
-        `
-      );
-
       // Add new tournament to table
       const gameCreatedOn = new Date();
-      await client.query(
-        `insert into tournaments(tournament_creator_id, tournament_created_on, player_array)
-           values($1, $2, $3)
+      const createdTournament = await client.query(
+        `insert into tournaments(tournament_creator_id, tournament_created_on)
+           values($1, $2)
            returning *
           `,
-        // JSON.stringify(playerArray) to save array of json objects
-        // to DB if not stringify before it saves weird
-        [user_id, gameCreatedOn, JSON.stringify(playerArray)]
+        [user_id, gameCreatedOn]
       );
 
-      // Find games creator
-      const foundGameCreatorInPlyerArray = playerArray.find((player) => {
-        return player.playerName.toLowerCase() === name;
+      playerArray.forEach(async (player) => {
+        console.log(player);
+        await client.query(
+          `insert into players(tournament_id, in_tournament_id, name)
+             values($1, $2, $3)
+             returning *
+            `,
+          [
+            createdTournament.rows[0].tournament_id,
+            parseInt(player.id),
+            player.playerName.toLowerCase()
+          ]
+        );
       });
 
-      logging.info(NAMESPACE, "Adding one to tournaments creator total count");
-
-      // If game creator plays add one to played games count
-      // otherwise don't
-      // if (
-      //   gameCreator &&
-      //   parseInt(gameCreator.id) === user_id &&
-      //   foundGameCreatorInPlyerArray &&
-      //   foundGameCreatorInPlyerArray.playerName.toLocaleLowerCase() === name
-      // ) {
-      //   logging.info(
-      //     NAMESPACE,
-      //     "Adding one to tournaments creator total count and to the point overall"
-      //   );
-
-      //   await client.query(
-      //     "UPDATE users_stats SET tournaments_created = tournaments_created + 1, tournaments_played = tournaments_played + 1, points_overall = points_overall + $2  WHERE user_id = $1",
-      //     [user_id, foundGameCreatorInPlyerArray.score]
-      //   );
-      // } else {
-      //   logging.info(
-      //     NAMESPACE,
-      //     "Adding one to tournaments creator total count"
-      //   );
-      //   await client.query(
-      //     "UPDATE users_stats SET tournaments_created = tournaments_created + 1 WHERE user_id = $1",
-      //     [user_id]
-      //   );
-      // }
-
       if (gameCreator && parseInt(gameCreator.id) === user_id) {
+        logging.info(
+          NAMESPACE,
+          "Adding one to tournaments creator total count"
+        );
         const foundGameCreatorInPlyerArray = playerArray.find((player) => {
           return player.playerName.toLowerCase() === name;
         });
