@@ -24,12 +24,12 @@ CREATE TABLE IF NOT EXISTS users_stats (
 
 CREATE TABLE IF NOT EXISTS players (
   player_id serial PRIMARY KEY,
-  points INTEGER NOT NULL DEFAULT 0,
-  tournament_won INTEGER NOT NULL DEFAULT 0,
-  tournament_lost INTEGER NOT NULL DEFAULT 0,
+  name VARCHAR ( 50 ) NOT NULL,
   in_tournament_id INTEGER NOT NULL,
+  points INTEGER NOT NULL DEFAULT 0,
+  is_winner BOOLEAN DEFAULT false,
   tournament_id INTEGER NOT NULL,
-  FOREIGN KEY (tournament_id) REFERENCES users (tournament_id)
+  FOREIGN KEY (tournament_id) REFERENCES tournaments (tournament_id)
 )
 
 CREATE TABLE IF NOT EXISTS tournaments (
@@ -39,3 +39,24 @@ CREATE TABLE IF NOT EXISTS tournaments (
   tournament_ended_on TIMESTAMP,
   FOREIGN KEY (tournament_creator_id) REFERENCES users (user_id)
 );
+
+CREATE TABLE IF NOT EXISTS teams (
+  team_id serial PRIMARY KEY,
+  game_number INTEGER NOT NULL,
+  player_1 VARCHAR ( 50 ) NOT NULL,
+  player_2 VARCHAR ( 50 ) NOT NULL,
+  team INTEGER NOT NULL,
+  score INTEGER NOT NULL,
+  tournament_id INTEGER NOT NULL,
+  FOREIGN KEY (tournament_id) REFERENCES tournaments (tournament_id)
+)
+
+-- CREATE TABLE IF NOT EXISTS teams (
+--   team_id serial PRIMARY KEY,
+--   player_1_id INTEGER NOT NULL,
+--   player_2_id INTEGER NOT NULL,
+--   team INTEGER NOT NULL,
+--   score INTEGER NOT NULL,
+--   tournament_id INTEGER NOT NULL,
+--   FOREIGN KEY (tournament_id) REFERENCES tournaments (tournament_id)
+-- )
