@@ -36,9 +36,11 @@ CREATE TABLE IF NOT EXISTS tournaments (
   tournament_id serial PRIMARY KEY,
   tournament_creator_id INTEGER NOT NULL,
   tournament_created_on TIMESTAMP NOT NULL,
+  tournament_winner INTEGER,
   tournament_ended_on TIMESTAMP,
+  tournament_location INTEGER,
   FOREIGN KEY (tournament_creator_id) REFERENCES users (user_id)
-);
+)
 
 CREATE TABLE IF NOT EXISTS teams (
   team_id serial PRIMARY KEY,
@@ -47,6 +49,7 @@ CREATE TABLE IF NOT EXISTS teams (
   player_2 VARCHAR ( 50 ) NOT NULL,
   team INTEGER NOT NULL,
   score INTEGER NOT NULL,
+  winner BOOLEAN NOT NULL,
   tournament_id INTEGER NOT NULL,
   FOREIGN KEY (tournament_id) REFERENCES tournaments (tournament_id)
 )
