@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS tournaments (
   FOREIGN KEY (tournament_creator_id) REFERENCES users (user_id)
 )
 
-CREATE TABLE IF NOT EXISTS teams (
+CREATE TABLE IF NOT EXISTS games (
   team_id serial PRIMARY KEY,
   game_number INTEGER NOT NULL,
   player_1 VARCHAR ( 50 ) NOT NULL,
