@@ -1,8 +1,10 @@
 import { Response } from "express";
+import { QueryResult } from "pg";
 import logging from "../config/logging";
 import { getClient, poll } from "../config/postgresql";
 import RequestWithUser from "../interfaces/requestWithUser";
 import { IPlayerArray } from "../types/playerArray";
+import { ITournamentLocations } from "../types/tournamentLocations";
 
 const NAMESPACE = "Tournament";
 
@@ -18,18 +20,40 @@ const createTournaments = async (req: RequestWithUser, res: Response) => {
       const { user_id } = req.user;
       const {
         playerArray,
-        gameCreator
-      }: { playerArray: IPlayerArray; gameCreator?: { id: number } } = req.body;
+        tournamentCreator,
+        tournamentLocations
+      }: {
+        playerArray: IPlayerArray;
+        tournamentCreator?: { id: number };
+        tournamentLocations?: ITournamentLocations;
+      } = req.body;
 
       /* Add new tournament to table **/
-      const tournamentCreatedOn = new Date();
-      const createdTournament = await client.query(
-        `insert into tournaments(tournament_creator_id, tournament_created_on)
-           values($1, $2)
-           returning *
-        `,
-        [user_id, tournamentCreatedOn]
-      );
+      const tournamentCreatedOn = new Date().toLocaleString("en-US");
+      let createdTournament: QueryResult<any>;
+
+      if (tournamentLocations) {
+        createdTournament = await client.query(
+          `insert into tournaments(tournament_creator_id, tournament_created_on, tournament_latitude, tournament_longitude)
+             values($1, $2, $3, $4)
+             returning *
+          `,
+          [
+            user_id,
+            tournamentCreatedOn,
+            tournamentLocations.latitude,
+            tournamentLocations.longitude
+          ]
+        );
+      } else {
+        createdTournament = await client.query(
+          `insert into tournaments(tournament_creator_id, tournament_created_on)
+             values($1, $2)
+             returning *
+          `,
+          [user_id, tournamentCreatedOn]
+        );
+      }
 
       /* Save all players to database **/
       playerArray.forEach(async (player) => {
@@ -46,7 +70,7 @@ const createTournaments = async (req: RequestWithUser, res: Response) => {
         );
       });
 
-      if (gameCreator && gameCreator.id === user_id) {
+      if (tournamentCreator && tournamentCreator.id === user_id) {
         /* Account owner will play **/
         logging.info(
           NAMESPACE,
@@ -125,7 +149,7 @@ export const finishTournament = async (req: RequestWithUser, res: Response) => {
         );
       });
 
-      const tournamentEndedOn = new Date();
+      const tournamentEndedOn = new Date().toLocaleString("en-US");
       const tournamentWinner = playerArray.find((player) => {
         return player.winner === true;
       });
@@ -193,11 +217,23 @@ export const getAllTournaments = async (
 ) => {
   if (req.user) {
     const { user_id } = req.user;
+    const { start_date, end_date } = req.query;
+    console.log("start_date: ", start_date);
     try {
-      const result = await poll.query(
-        "SELECT * FROM tournaments WHERE tournament_creator_id = $1",
-        [user_id]
-      );
+      let result: QueryResult<any>;
+
+      if (start_date && end_date) {
+        result = await poll.query(
+          "SELECT * FROM tournaments WHERE tournament_creator_id = $1 AND to_char(tournament_created_on, 'DD-MM-YYYY') BETWEEN $2 AND $3",
+          [user_id, start_date, end_date]
+        );
+      } else {
+        result = await poll.query(
+          "SELECT * FROM tournaments WHERE tournament_creator_id = $1",
+          [user_id]
+        );
+      }
+      // "SELECT * FROM tournaments WHERE tournament_creator_id = $1 AND to_char(tournament_created_on, 'DD-MM-YYYY') BETWEEN $2 AND $3"
       res.status(200).json(result.rows);
     } catch (error) {
       res.status(404).json("not found!");
