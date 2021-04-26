@@ -1,8 +1,8 @@
 export type IPlayerArray = IPlayer[];
 
 export type IPlayer = {
-  id: string;
-  score: string;
+  inTournamentId: number;
+  score: number;
   winner: boolean;
   playerName: string;
 };
