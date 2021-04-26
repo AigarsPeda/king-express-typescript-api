@@ -42,6 +42,8 @@ export const createAllTables = async () => {
         tournament_created_on TIMESTAMP NOT NULL,
         tournament_winner INTEGER,
         tournament_ended_on TIMESTAMP,
+        tournament_latitude FLOAT,
+        tournament_longitude FLOAT,
         FOREIGN KEY (tournament_creator_id) REFERENCES users (user_id)
       )
     `
@@ -63,13 +65,14 @@ export const createAllTables = async () => {
 
   await poll.query(
     `
-      CREATE TABLE IF NOT EXISTS teams (
-        team_id serial PRIMARY KEY,
+      CREATE TABLE IF NOT EXISTS games (
+        game_id serial PRIMARY KEY,
         game_number INTEGER NOT NULL,
         player_1 VARCHAR ( 50 ) NOT NULL,
         player_2 VARCHAR ( 50 ) NOT NULL,
         team INTEGER NOT NULL,
         score INTEGER NOT NULL,
+        winner BOOLEAN NOT NULL,
         tournament_id INTEGER NOT NULL,
         FOREIGN KEY (tournament_id) REFERENCES tournaments (tournament_id)
       )
