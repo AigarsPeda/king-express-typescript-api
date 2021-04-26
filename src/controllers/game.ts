@@ -1,67 +1,61 @@
 import { Response } from "express";
 import logging from "../config/logging";
-import { getClient } from "../config/postgresql";
+import { getClient, poll } from "../config/postgresql";
 import RequestWithUser from "../interfaces/requestWithUser";
-import { ITeam } from "../types/team";
+import { ITeam, ITeamDB } from "../types/team";
 
 const NAMESPACE = "Game";
 
 const saveGame = async (req: RequestWithUser, res: Response) => {
   if (req.user) {
-    logging.info(NAMESPACE, "Saving game");
-
     const client = await getClient();
     if (!client) return res.status(503).json("no connection with db");
 
     try {
+      logging.info(NAMESPACE, "Saving game");
       await client.query("begin");
 
       const {
-        team1,
-        team2,
+        teams,
         gameNumber,
         tournamentId
       }: {
-        team1: ITeam;
-        team2: ITeam;
+        teams: ITeam[];
         gameNumber: number;
         tournamentId: number;
       } = req.body;
 
-      // TODO: add game winner
-      // TODO: convert team obj to teams obj array
+      /* Save teams data to database **/
+      teams.forEach(async (team) => {
+        await client.query(
+          `insert into games(game_number, player_1, player_2, team, score, winner, tournament_id)
+             values($1, $2, $3, $4, $5, $6, $7)
+             returning *
+            `,
+          [
+            gameNumber,
+            team.firstPlayer.toLowerCase(),
+            team.secondPlayer.toLowerCase(),
+            team.team,
+            team.score,
+            team.winner,
+            tournamentId
+          ]
+        );
+      });
 
-      /* Save first team to database **/
-      await client.query(
-        `insert into teams(game_number, player_1, player_2, team, score, tournament_id)
-           values($1, $2, $3, $4, $5, $6)
-           returning *
-          `,
-        [
-          gameNumber,
-          team1.firstPlayer,
-          team1.secondPlayer,
-          team1.team,
-          team1.score,
-          tournamentId
-        ]
-      );
-
-      /* Save second team to database **/
-      await client.query(
-        `insert into teams(game_number, player_1, player_2, team, score, tournament_id)
-          values($1, $2, $3, $4, $5, $6)
-          returning *
-        `,
-        [
-          gameNumber,
-          team2.firstPlayer,
-          team2.secondPlayer,
-          team2.team,
-          team2.score,
-          tournamentId
-        ]
-      );
+      // TODO: team.firstPlayer.toLowerCase() or team.secondPlayer.toLowerCase()
+      teams.forEach(async (team) => {
+        await client.query(
+          "UPDATE players SET points = points + $1 WHERE name = $2 OR name = $3  AND tournament_id = $4",
+          [
+            team.score,
+            team.firstPlayer.toLowerCase(),
+            team.secondPlayer.toLowerCase(),
+            tournamentId
+          ]
+        );
+      });
 
       await client.query("commit");
       logging.info(NAMESPACE, "Game saved");
@@ -81,4 +75,75 @@ const saveGame = async (req: RequestWithUser, res: Response) => {
   }
 };
 
-export default { saveGame };
+// const groupBy = function(xs, key) {
+//   return xs.reduce(function(rv, x) {
+//     (rv[x[key]] = rv[x[key]] || []).push(x);
+//     return rv;
+//   }, {});
+// };
+
+export const getTournamentGames = async (
+  req: RequestWithUser,
+  res: Response
+) => {
+  if (req.user) {
+    const { user_id } = req.user;
+    const { id } = req.params;
+
+    const result = await poll.query(
+      "SELECT tournament_creator_id FROM tournaments WHERE tournament_id = $1 ",
+      [id]
+    );
+
+    /* If request maker isn't creator off tournament don't share it **/
+    const tournamentsOwner: number = result.rows[0].tournament_creator_id;
+    if (tournamentsOwner != user_id) res.status(401).json("unauthorized!");
+
+    try {
+      const result = await poll.query(
+        "SELECT * FROM games WHERE tournament_id = $1",
+        [id]
+      );
+      // res.status(200).json(result.rows);
+
+      const teamsGroupedGameNumber: ITeamDB[][] = Object.values(
+        result.rows.reduce((rv, team: ITeamDB) => {
+          (rv[team.game_number] = rv[team.game_number] || []).push(team);
+          return rv;
+        }, {})
+      );
+
+      /* Accessing values in array **/
+      // for (let i = 0; i < teamsGroupedGameNumber.length; i++) {
+      //   const element = teamsGroupedGameNumber[i];
+      //   for (let j = 0; j < element.length; j++) {
+      //     const team = element[j];
+      //     console.log(team.game_number);
+      //   }
+      // }
+
+      // const grouped = Object.values(
+      //   result.rows.reduce((r, team: ITeamDB) => {
+      //     if (!r[team.game_number]) {
+      //       r[team.game_number] = team;
+      //       console.log(typeof r);
+      //       return r;
+      //     }
+      //     if (!Array.isArray(r[team.game_number]))
+      //       r[team.game_number] = [r[team.game_number]];
+      //     r[team.game_number].push(team);
+      //     console.log(r);
+      //     return r;
+      //   }, {})
+      // );
+
+      res.status(200).json(teamsGroupedGameNumber);
+    } catch (error) {
+      res.status(404).json("not found!");
+    }
+  } else {
+    res.status(401).json("unauthorized!");
+  }
+};
+
+export default { saveGame, getTournamentGames };
