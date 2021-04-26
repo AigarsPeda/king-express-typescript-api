@@ -5,6 +5,8 @@ const router = express.Router();
 
 router.post("/tournament/create", controller.createTournaments);
 router.post("/tournament/finish", controller.finishTournament);
+
+// ?from_date=from_date
 router.get("/tournaments", controller.getAllTournaments);
 
 export = router;
