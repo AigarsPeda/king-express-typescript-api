@@ -28,8 +28,8 @@ export const createUser = async (req: Request, res: Response) => {
       surname: string;
       terms: boolean;
     } = req.body;
-    const created_on = new Date().toLocaleString("en-US");
-
+    // const created_on = new Date().toLocaleString("en-US");
+    const created_on = new Date();
     /** Validating inputs */
     const { isValid, errorMessage } = validateCreateUser({
       name: name,
@@ -131,8 +131,8 @@ export const loginUser = async (req: Request, res: Response) => {
 
     /** Compare password entered and what is saved in db */
     if (await argon2.verify(loginUser.rows[0].password, password.trim())) {
-      const last_login = new Date().toLocaleString("en-US");
-
+      // const last_login = new Date().toLocaleString("en-US");
+      const last_login = new Date();
       /** Updating last login date to current date */
       const updatedClient = await poll.query(
         `UPDATE users SET last_login = $1 WHERE email = $2 
