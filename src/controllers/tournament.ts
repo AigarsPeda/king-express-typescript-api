@@ -29,7 +29,8 @@ const createTournaments = async (req: RequestWithUser, res: Response) => {
       } = req.body;
 
       /* Add new tournament to table **/
-      const tournamentCreatedOn = new Date().toLocaleString("en-US");
+      // const tournamentCreatedOn = new Date().toLocaleString("en-US");
+      const tournamentCreatedOn = new Date();
       let createdTournament: QueryResult<any>;
 
       if (tournamentLocations) {
@@ -149,7 +150,8 @@ export const finishTournament = async (req: RequestWithUser, res: Response) => {
         );
       });
 
-      const tournamentEndedOn = new Date().toLocaleString("en-US");
+      // const tournamentEndedOn = new Date().toLocaleString("en-US");
+      const tournamentEndedOn = new Date();
       const tournamentWinner = playerArray.find((player) => {
         return player.winner === true;
       });
@@ -217,15 +219,22 @@ export const getAllTournaments = async (
 ) => {
   if (req.user) {
     const { user_id } = req.user;
-    const { start_date, end_date } = req.query;
-    console.log("start_date: ", start_date);
+    const { start_date, end_date, unfinished } = req.query;
+    // console.log("start_date: ", start_date);
+    // console.log("end_date: ", end_date);
+    // console.log("unfinished: ", unfinished);
     try {
       let result: QueryResult<any>;
 
       if (start_date && end_date) {
         result = await poll.query(
-          "SELECT * FROM tournaments WHERE tournament_creator_id = $1 AND to_char(tournament_created_on, 'DD-MM-YYYY') BETWEEN $2 AND $3",
+          "SELECT * FROM tournaments WHERE tournament_creator_id = $1 AND tournament_created_on BETWEEN $2 AND $3 ORDER BY tournament_created_on DESC",
           [user_id, start_date, end_date]
+        );
+      } else if (unfinished) {
+        console.log("te");
+        result = await poll.query(
+          "SELECT * FROM tournaments WHERE tournament_ended_on IS NULL"
         );
       } else {
         result = await poll.query(
