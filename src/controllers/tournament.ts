@@ -57,8 +57,9 @@ const createTournaments = async (req: RequestWithUser, res: Response) => {
       }
 
       /* Save all players to database **/
+      const playerArrayFromDB: QueryResult<any>[] = [];
       playerArray.forEach(async (player) => {
-        await client.query(
+        const playerFromDB = await client.query(
           `insert into players(tournament_id, in_tournament_id, name)
              values($1, $2, $3)
              returning *
@@ -69,6 +70,8 @@ const createTournaments = async (req: RequestWithUser, res: Response) => {
             player.playerName.toLowerCase()
           ]
         );
+
+        playerArrayFromDB.push(playerFromDB.rows[0]);
       });
 
       if (tournamentCreator && tournamentCreator.id === user_id) {
@@ -98,9 +101,10 @@ const createTournaments = async (req: RequestWithUser, res: Response) => {
       await client.query("commit");
       logging.info(NAMESPACE, "Tournament created");
 
-      /* If tournaments created return its ID **/
+      /* If tournaments created return it **/
       res.status(200).json({
-        tournamentId: createdTournament.rows[0].tournament_id
+        tournament: createdTournament.rows[0],
+        playerArrayFromDB: playerArrayFromDB
       });
     } catch (error) {
       logging.error(NAMESPACE, error.message, error);
