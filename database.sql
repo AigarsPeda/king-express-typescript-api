@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS players (
   name VARCHAR ( 50 ) NOT NULL,
   in_tournament_id INTEGER NOT NULL,
   points INTEGER NOT NULL DEFAULT 0,
+  big_points INTEGER NOT NULL DEFAULT 0,
   is_winner BOOLEAN DEFAULT false,
   tournament_id INTEGER NOT NULL,
   FOREIGN KEY (tournament_id) REFERENCES tournaments (tournament_id)
