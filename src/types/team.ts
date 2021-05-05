@@ -4,6 +4,7 @@ export type ITeam = {
   team: number;
   score: number;
   winner: boolean;
+  bigPoints: number;
 };
 
 export type ITeamDB = {
