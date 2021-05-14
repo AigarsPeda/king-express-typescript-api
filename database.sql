@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS tournaments (
   tournament_winner INTEGER,
   tournament_ended_on TIMESTAMP,
   tournament_location INTEGER,
+  tournament_current_game INTEGER NOT NULL DEFAULT 1,
   FOREIGN KEY (tournament_creator_id) REFERENCES users (user_id)
 )
 
