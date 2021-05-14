@@ -44,7 +44,6 @@ const saveGame = async (req: RequestWithUser, res: Response) => {
         );
       });
 
-      // TODO: team.firstPlayer.toLowerCase() or team.secondPlayer.toLowerCase()
       teams.forEach(async (team) => {
         await client.query(
           "UPDATE players SET points = points + $1, big_points = big_points + $2  WHERE name = $3 OR name = $4  AND tournament_id = $5",
