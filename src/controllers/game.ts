@@ -58,6 +58,11 @@ const saveGame = async (req: RequestWithUser, res: Response) => {
         );
       });
 
+      await client.query(
+        `UPDATE tournaments SET tournament_current_game = $1 WHERE tournament_id = $2`,
+        [gameNumber, tournamentId]
+      );
+
       await client.query("commit");
       logging.info(NAMESPACE, "Game saved");
 
