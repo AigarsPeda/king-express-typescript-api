@@ -67,15 +67,15 @@ export const createAllTables = async () => {
   await poll.query(
     `
       CREATE TABLE IF NOT EXISTS games (
-        game_id serial PRIMARY KEY,
+        team_id serial PRIMARY KEY,
         game_number INTEGER NOT NULL,
-        player_1 VARCHAR ( 50 ) NOT NULL,
-        player_2 VARCHAR ( 50 ) NOT NULL,
-        team INTEGER NOT NULL,
+        team_number INTEGER NOT NULL,
         score INTEGER NOT NULL,
         winner BOOLEAN NOT NULL,
         tournament_id INTEGER NOT NULL,
-        FOREIGN KEY (tournament_id) REFERENCES tournaments (tournament_id)
+        player_id INTEGER NOT NULL,
+        FOREIGN KEY (tournament_id) REFERENCES tournaments (tournament_id),
+        FOREIGN KEY (player_id) REFERENCES players (player_id)
       )
     `
   );
