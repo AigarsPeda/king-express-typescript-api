@@ -47,21 +47,12 @@ CREATE TABLE IF NOT EXISTS tournaments (
 CREATE TABLE IF NOT EXISTS games (
   team_id serial PRIMARY KEY,
   game_number INTEGER NOT NULL,
-  player_1 VARCHAR ( 50 ) NOT NULL,
-  player_2 VARCHAR ( 50 ) NOT NULL,
-  team INTEGER NOT NULL,
+  team_number INTEGER NOT NULL,
   score INTEGER NOT NULL,
   winner BOOLEAN NOT NULL,
   tournament_id INTEGER NOT NULL,
-  FOREIGN KEY (tournament_id) REFERENCES tournaments (tournament_id)
+  player_id INTEGER NOT NULL,
+  FOREIGN KEY (tournament_id) REFERENCES tournaments (tournament_id),
+  FOREIGN KEY (player_id) REFERENCES players (player_id)
 )
 
--- CREATE TABLE IF NOT EXISTS teams (
---   team_id serial PRIMARY KEY,
---   player_1_id INTEGER NOT NULL,
---   player_2_id INTEGER NOT NULL,
---   team INTEGER NOT NULL,
---   score INTEGER NOT NULL,
---   tournament_id INTEGER NOT NULL,
---   FOREIGN KEY (tournament_id) REFERENCES tournaments (tournament_id)
--- )
