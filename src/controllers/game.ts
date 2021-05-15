@@ -55,11 +55,19 @@ const saveGame = async (req: RequestWithUser, res: Response) => {
         [game_number, tournament_id]
       );
 
+      const result = await poll.query(
+        "SELECT * FROM players WHERE tournament_id = $1",
+        [tournament_id]
+      );
+
+      // console.log(result.rows);
+
       await client.query("commit");
       logging.info(NAMESPACE, "Game saved");
 
       /* If tournaments created return message **/
-      res.status(200).json("Game saved!");
+      // res.status(200).json("Game saved!");
+      res.status(200).json(result.rows);
     } catch (error) {
       logging.error(NAMESPACE, error.message, error);
       await client.query("rollback");
