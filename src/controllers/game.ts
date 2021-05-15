@@ -17,49 +17,42 @@ const saveGame = async (req: RequestWithUser, res: Response) => {
 
       const {
         teams,
-        gameNumber,
-        tournamentId
+        game_number,
+        tournament_id
       }: {
         teams: ITeam[];
-        gameNumber: number;
-        tournamentId: number;
+        game_number: number;
+        tournament_id: number;
       } = req.body;
 
       /* Save teams data to database **/
-      teams.forEach(async (team) => {
+      teams.forEach(async (player) => {
         await client.query(
-          `insert into games(game_number, player_1, player_2, team, score, winner, tournament_id)
-             values($1, $2, $3, $4, $5, $6, $7)
+          `insert into games(game_number, player_id, team_number, score, winner, tournament_id)
+             values($1, $2, $3, $4, $5, $6)
              returning *
             `,
           [
-            gameNumber,
-            team.firstPlayer.toLowerCase(),
-            team.secondPlayer.toLowerCase(),
-            team.team,
-            team.score,
-            team.winner,
-            tournamentId
+            game_number,
+            player.player_id,
+            player.team_number,
+            player.points,
+            player.is_winner,
+            tournament_id
           ]
         );
       });
 
-      teams.forEach(async (team) => {
+      teams.forEach(async (player) => {
         await client.query(
-          "UPDATE players SET points = points + $1, big_points = big_points + $2  WHERE name = $3 OR name = $4  AND tournament_id = $5",
-          [
-            team.score,
-            team.bigPoints,
-            team.firstPlayer.toLowerCase(),
-            team.secondPlayer.toLowerCase(),
-            tournamentId
-          ]
+          "UPDATE players SET points = points + $1, big_points = big_points + $2 WHERE player_id = $3 AND tournament_id = $4",
+          [player.points, player.big_points, player.player_id, tournament_id]
         );
       });
 
       await client.query(
         `UPDATE tournaments SET tournament_current_game = $1 WHERE tournament_id = $2`,
-        [gameNumber, tournamentId]
+        [game_number, tournament_id]
       );
 
       await client.query("commit");
